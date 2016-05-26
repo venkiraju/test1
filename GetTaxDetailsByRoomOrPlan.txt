@@ -1,0 +1,125 @@
+USE [welcomgroup]
+GO
+
+/****** Object:  StoredProcedure [hotels].[SP_GetTaxDetailsByRoomOrPlan]    Script Date: 05/26/2016 19:54:30 ******/
+IF  EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[hotels].[SP_GetTaxDetailsByRoomOrPlan]') AND type in (N'P', N'PC'))
+DROP PROCEDURE [hotels].[SP_GetTaxDetailsByRoomOrPlan]
+GO
+
+USE [welcomgroup]
+GO
+
+/****** Object:  StoredProcedure [hotels].[SP_GetTaxDetailsByRoomOrPlan]    Script Date: 05/26/2016 19:54:30 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- =============================================
+-- Description:	< To get tax details by rack or charged>
+-- =============================================
+CREATE PROCEDURE [hotels].[SP_GetTaxDetailsByRoomOrPlan] 
+	@hotelId numeric(18,0),@checkInDate varchar(20),@checkOutDate varchar(20),@roomId numeric(18,0),
+	@planId numeric(18,0)
+AS
+BEGIN
+	Declare @taxType varchar(30)
+	Declare @rateCode varchar(10)
+	Declare @result int
+	
+	Select @taxType = UPPER(tax_type) from w_hotel where id_hotel=@hotelId
+	declare @breakfast_rate numeric(18,2),@lunch_rate numeric(18,2),@dinner_rate numeric(18,2)
+	   ,@internet_rate numeric(18,2),@spa_rate numeric(18,2),@vatItem numeric(18,2)=0.0,@servicetaxItem numeric(18,2)=0.0
+	   ,@flg_breakfast varchar(1)='N',@flg_one_major_meals varchar(1)='N',@flg_two_major_meals varchar(1)='N'
+	   ,@flg_wifi varchar(1)='N',@flg_spa_treatment varchar(1)='N'
+	   select @flg_breakfast=flg_breakfast,@flg_one_major_meals=flg_one_major_meals,@flg_two_major_meals=flg_two_major_meals 
+	   ,@flg_wifi=flg_wifi,@flg_spa_treatment=flg_spa_treatment 
+	   from b_plan where id_hotel=@hotelId and id_plan=@planId 
+	   and DiscountValue is not null or rate_code = 'NONE'
+	   
+	   select @breakfast_rate=sys_def_breakfast_rate_amt,@lunch_rate=sys_def_lunch_rate_amt
+	   ,@dinner_rate=sys_def_dinner_rate_amt,@internet_rate=sys_def_internet_rate_amt
+	   ,@spa_rate=sys_def_spa_rate_amt from a_system
+	   
+	   if(@flg_breakfast is not null and @flg_breakfast='Y')
+	   begin
+		set @vatItem = @vatItem+@breakfast_rate;
+	   end
+	   if((@flg_one_major_meals is not null and @flg_one_major_meals='Y'))
+	   begin
+		set @vatItem = @vatItem+@lunch_rate;
+	   end
+	   if((@flg_two_major_meals is not null and @flg_two_major_meals='Y'))
+	   begin
+		set @vatItem = @vatItem+@lunch_rate+@dinner_rate;
+	   end
+	   if(@flg_spa_treatment is not null and @flg_spa_treatment='Y')
+	   begin
+		set @servicetaxItem = @servicetaxItem+@spa_rate;
+	   end
+	   if(@flg_wifi is not null and @flg_wifi='Y')
+	   begin
+		set @servicetaxItem = @servicetaxItem+@internet_rate;
+	   end
+	   if(@vatItem is null)
+	   begin
+		set @vatItem = 0.0;
+	   end
+		if(@servicetaxItem is null)
+	   begin
+		set @servicetaxItem = 0.0;
+	   end
+	   declare @independentPlanCount int=0
+	   
+	   select @independentPlanCount=count(id_plan) from b_plan where id_plan=@planId and rate_code is not null and rate_code != '' and rate_code != 'NONE'
+		if(@independentPlanCount = 0)
+		begin
+			Select 
+			--bpr.amt_rspax1,bpr.amt_rspax2
+			case when bp.redemptionType = 'F' then bpr.points else bpr.amt_rspax1 end as amt_rspax1
+			,case when bp.redemptionType = 'F' then bpr.points else bpr.amt_rspax2 end as amt_rspax2
+			,bpr.amt_rspaxex,bpr.child_rspax1,bp.redemptionType,bpr.points 
+		   ,bp.id_plan,bpr.date_startocc,bpr.date_endocc,bps.Date_planstatus,bp.DiscountValue,bp.rate_code
+			from b_plan bp 
+			inner join b_plan_rate bpr on bpr.id_plan = bp.id_plan and bp.id_hotel=bpr.id_hotel
+			inner join b_planstatus bps on bp.id_plan = bps.id_plan and bps.Id_hotel=bp.id_hotel
+			where bp.id_hotel=@hotelId and bpr.id_room = @roomId and bp.id_plan=@planId
+			and convert(Date,bpr.date_startocc) <= @checkInDate and convert(Date,bpr.date_endocc) >= @checkOutDate
+			 and CONVERT(DATE,bps.Date_planstatus) >= convert(DATE,@checkInDate) 
+			 and CONVERT(DATE,bps.Date_planstatus) < convert(DATE,@checkOutDate)
+			  and bps.Flg_openstatus = 'O'
+			 order by amt_rspax1 asc 
+	   end
+	   else
+	   begin
+			Select 
+			--bpr.amt_rspax1,bpr.amt_rspax2
+			case when bp.redemptionType = 'F' then bpr.points else bpr.amt_rspax1 end as amt_rspax1
+			,case when bp.redemptionType = 'F' then bpr.points else bpr.amt_rspax2 end as amt_rspax2
+			,bpr.amt_rspaxex,bpr.child_rspax1,bp.redemptionType,bpr.points 
+			,bp.id_plan,bpr.date_startocc,bpr.date_endocc,brd.Date_planstatus,bp.DiscountValue,bp.rate_code
+			from b_plan bp 
+			inner join b_plan_rate bpr on bpr.id_plan = bp.id_plan and bp.id_hotel=bpr.id_hotel
+			inner join b_ratecategory brc on bp.rate_code = brc.rate_code and brc.id_hotel=bp.id_hotel
+			inner join b_ratecategory_date brd on brc.id_ratecategory = brd.id_ratecategory_date and brc.id_hotel=brd.id_hotel
+			where bp.id_hotel=@hotelId and bpr.id_room = @roomId
+			  and (CONVERT(DATE,brd.Date_planstatus) >= convert(DATE,@checkInDate) 
+			  and CONVERT(DATE,brd.Date_planstatus) < convert(DATE,@checkOutDate)) 
+			 and brd.Flg_openstatus = 'O'
+			 and bp.id_plan in(select bps.Id_plan from b_planstatus bps where bps.Id_hotel=bp.id_hotel and CONVERT(DATE,bps.Date_planstatus) >= convert(DATE,@checkInDate) 
+			 and CONVERT(DATE,bps.Date_planstatus) < convert(DATE,@checkOutDate) and bps.Flg_openstatus = 'O')
+			 order by amt_rspax1 asc 
+	end
+	   Select service_tax,luxury_tax,vat,[start_date],end_date
+	   ,convert(dec(10,2),round(@vatItem*vat/100,2),0) as inclusiveVat
+	   ,convert(dec(10,2),round(@servicetaxItem*service_tax/100,2),0) as inclusiveServiceTax
+	   ,case when @taxType = 'R' then 'RACK' else 'CHARGED' end as taxType
+	   from b_tax_detail where id_hotel=@hotelId
+	   and (rate_code is null or rate_code = '')
+	
+END
+
+GO
+
+
