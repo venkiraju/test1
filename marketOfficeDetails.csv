@@ -1,7 +1,13 @@
 CityName,EmailID,Telephone_Number,Fax_Number
 ,,,
-Hyderabad,abc@gmail.com,1234567890,987654321
-Chennai,abc@gmail.com,1234567890,987654321
-Delhi,abc@gmail.com,1234567890,987654321
-Mumbai,xyz@gmail.com,7654234567,345679863
-Kolkata,slkd@gmail.com,345678987,456789876
+Ahmedabad,RegionalSalesOffice.Ahmedabad@itchotels.in,"079-26588603, 079-26586610",079-26583557
+Bengaluru,Regionalsalesoffice.Bengaluru@itchotels.in,"080-22269898, 080-22280867/68",080-22280489
+Chennai,Regionalsalesoffice.Chennai@itchotels.in,044-4400 1777/78/79,044-4400 1780
+Coimbatore,Regionalsalesoffice.Coimbatore@itchotels.in,0422-2301629,0422-2301169
+Hyderabad,Regionalsalesoffice.Hyderabad@itchotels.in,040-23401042/9043,040-23419050
+Kolkata,Regionalsalesoffice.Kolkata@itchotels.in,"033-22880909, 033-22882485",033-22882344
+Mumbai,Regionalsalesoffice.Mumbai@itchotels.in,022 - 66545454,022 - 66517171
+New Delhi,RegionalSalesOffice.Delhi@itchotels.in,"011-41669494,011-41669797","011-46015740, 26143160"
+Pune,Regionalsalesoffice.Pune@itchotels.in,"020-26050817, 020-26136765",020-26131680
+Vadodara,Sales.Vadodara@itchotels.in,0265-2330033,0265-2330050
+Gurgaon,RegionalSalesOffice.Gurgaon@itchotels.in,0124- 4212765,
